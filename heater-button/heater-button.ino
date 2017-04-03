@@ -14,9 +14,6 @@
 const int LED_PIN = 15;
 const int BUTTON_PIN = 12;
 
-int heaterState = 0;
-
-
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -25,19 +22,18 @@ void callback(char* topic, byte* payload, unsigned int length){
   Serial.print(topic);
   Serial.print("] ");
 
-  for(int i=0;i<length;i++){
-    char receivedChar = (char)payload[i];
-    Serial.print(receivedChar);
-    if(receivedChar == '1'){
-      heaterState = 1;
-      digitalWrite(LED_PIN, HIGH);
-    }
-    if(receivedChar == '0'){
-      heaterState = 0;
-      digitalWrite(LED_PIN, LOW);
-    }
-    Serial.println();
+  payload[length] = '\0';
+  String receivedChars = String((char*)payload);
+  
+  Serial.print(receivedChars);
+  
+  if(receivedChars == "on"){
+    digitalWrite(LED_PIN, HIGH);
   }
+  if(receivedChars == "off"){
+    digitalWrite(LED_PIN, LOW);
+  }
+  Serial.println();
 }
 
 void reconnect() {
@@ -45,7 +41,7 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if(client.connect("ESP8266 Client")) {
       Serial.println("connected");
-      client.subscribe(HEATER_TOPIC);
+      client.subscribe(HEATER_STATUS_TOPIC);
     }else{
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -97,14 +93,8 @@ void loop() {
   
   if (buttonState == LOW){
     Serial.println("BUTTON PRESSED");
-    // heater is on
-    if(heaterState == 1){
-      Serial.println("Turning Heater off");
-      client.publish(HEATER_TOPIC, "0");
-    }else{
-      Serial.println("Turning Heater on");
-      client.publish(HEATER_TOPIC, "1");
-    }
+    Serial.println("Toggle Heater");
+    client.publish(HEATER_TOPIC, "0");
 
     delay(1000);
   }
